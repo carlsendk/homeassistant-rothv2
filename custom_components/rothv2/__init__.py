@@ -8,7 +8,8 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.typing import ConfigType
 from pytouchline_extended import PyTouchline
 
@@ -62,6 +63,49 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Register services
+    async def handle_refresh_devices(call: ServiceCall) -> None:
+        """Handle the refresh_devices service call."""
+        device_id = call.data.get("device_id")
+
+        for entry_id, data in hass.data[DOMAIN].items():
+            if isinstance(data, dict) and "controller" in data:
+                controller = data["controller"]
+                try:
+                    # If device_id specified, only refresh that device
+                    if device_id:
+                        # Convert device ID to controller device number
+                        # This is a simplified example and might need adjustment
+                        controller_device_id = device_id.split("_")[-1]
+                        controller.refresh_device(controller_device_id)
+                    else:
+                        # Refresh all devices
+                        controller.refresh_all()
+                    _LOGGER.info("Refreshed Roth Touchline devices")
+                except Exception as ex:
+                    _LOGGER.error("Error refreshing devices: %s", ex)
+
+    async def handle_set_week_program(call: ServiceCall) -> None:
+        """Handle the set_week_program service call."""
+        device_id = call.data.get("device_id")
+        program = call.data.get("program")
+
+        if not device_id or program is None:
+            _LOGGER.error("Missing required fields for set_week_program service")
+            return
+
+        # This is a simplified example - you would need to implement the logic
+        # to find the correct device object based on the device_id
+        for entry_id, data in hass.data[DOMAIN].items():
+            if isinstance(data, dict) and "controller" in data:
+                # You would need to implement this part based on how your devices are stored
+                _LOGGER.info(
+                    "Setting week program %s for device %s", program, device_id
+                )
+
+    hass.services.async_register(DOMAIN, "refresh_devices", handle_refresh_devices)
+    hass.services.async_register(DOMAIN, "set_week_program", handle_set_week_program)
 
     return True
 

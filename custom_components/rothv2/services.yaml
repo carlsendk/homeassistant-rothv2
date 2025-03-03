@@ -1,0 +1,37 @@
+# Service definitions for Roth Touchline V2 integration
+
+refresh_devices:
+  name: Refresh Devices
+  description: Refreshes all Roth Touchline devices connected to the controller.
+  fields:
+    device_id:
+      name: Device ID
+      description: The device ID for the Roth Touchline controller (optional, leave empty to refresh all).
+      example: 'device.roth_touchline_controller'
+      required: false
+      selector:
+        device:
+          integration: rothv2
+
+set_week_program:
+  name: Set Week Program
+  description: Set a specific week program for a Roth Touchline device.
+  fields:
+    device_id:
+      name: Device ID
+      description: The device ID for the Roth Touchline thermostat.
+      example: 'device.roth_touchline_thermostat'
+      required: true
+      selector:
+        device:
+          integration: rothv2
+    program:
+      name: Program
+      description: The program number (0-3).
+      example: 1
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 3
+          step: 1
