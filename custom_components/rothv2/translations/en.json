@@ -1,0 +1,38 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Connect to Roth Touchline",
+                "description": "Set up your Roth Touchline controller to integrate with Home Assistant.",
+                "data": {
+                    "host": "Host (IP address or hostname)"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to the controller. Please check the host and make sure the controller is online.",
+            "unknown": "Unexpected error"
+        },
+        "abort": {
+            "already_configured": "This Roth Touchline controller is already configured"
+        }
+    },
+    "entity": {
+        "climate": {
+            "touchline": {
+                "state_attributes": {
+                    "preset_mode": {
+                        "state": {
+                            "normal": "Normal",
+                            "night": "Night",
+                            "holiday": "Holiday",
+                            "pro_1": "Program 1",
+                            "pro_2": "Program 2",
+                            "pro_3": "Program 3"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

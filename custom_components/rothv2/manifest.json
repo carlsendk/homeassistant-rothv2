@@ -1,0 +1,17 @@
+{
+    "domain": "rothv2",
+    "name": "Roth Touchline V2",
+    "codeowners": [],
+    "config_flow": true,
+    "dependencies": [],
+    "documentation": "https://github.com/yourusername/homeassistant-rothv2",
+    "iot_class": "local_polling",
+    "loggers": [
+        "pytouchline"
+    ],
+    "quality_scale": "silver",
+    "requirements": [
+        "pytouchline_extended==0.4.5"
+    ],
+    "version": "0.1.0"
+}
