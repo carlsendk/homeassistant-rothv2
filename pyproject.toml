@@ -56,6 +56,8 @@ typeCheckingMode = "basic"
 # Ruff replaces Black, isort, flake8, and pylint
 line-length = 88
 target-version = "py39"
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -77,6 +79,9 @@ ignore = [
     "D103", # Missing docstring in public function
     "D104", # Missing docstring in public package
     "D107", # Missing docstring in __init__
+    # Add rules to resolve incompatible docstring rules
+    "D203", # Incompatible with D211
+    "D213", # Incompatible with D212
 ]
 exclude = [
     ".git",
@@ -90,5 +95,5 @@ exclude = [
 ]
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["custom_components.rothv2"]

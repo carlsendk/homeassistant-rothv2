@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, NamedTuple
+from typing import Any, ClassVar, NamedTuple
 
 import voluptuous as vol
 from homeassistant.components.climate import (
@@ -126,7 +126,7 @@ class TouchlineClimate(ClimateEntity):
     """Representation of a Touchline climate device."""
 
     _attr_hvac_mode = HVACMode.HEAT
-    _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
+    _attr_hvac_modes: ClassVar[list[HVACMode]] = [HVACMode.HEAT, HVACMode.OFF]
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
     )

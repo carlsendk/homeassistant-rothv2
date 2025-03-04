@@ -9,7 +9,6 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, Platform
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers.device_registry import DeviceRegistry
 from homeassistant.helpers.typing import ConfigType
 from pytouchline_extended import PyTouchline
 
@@ -31,13 +30,14 @@ CONFIG_SCHEMA = vol.Schema(
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Roth Touchline V2 component."""
-    hass.data[DOMAIN] = {}
+    hass.data.setdefault(DOMAIN, {})
 
     if DOMAIN not in config:
         return True
 
     # Process config from configuration.yaml
-    host = config[DOMAIN][CONF_HOST]
+    # host variable is assigned but not used, so we'll comment it out
+    # host = config[DOMAIN][CONF_HOST]
     hass.data[DOMAIN]["config"] = config[DOMAIN]
 
     return True
@@ -69,7 +69,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         """Handle the refresh_devices service call."""
         device_id = call.data.get("device_id")
 
-        for entry_id, data in hass.data[DOMAIN].items():
+        for _, data in hass.data[DOMAIN].items():
             if isinstance(data, dict) and "controller" in data:
                 controller = data["controller"]
                 try:
@@ -97,15 +97,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # This is a simplified example - you would need to implement the logic
         # to find the correct device object based on the device_id
-        for entry_id, data in hass.data[DOMAIN].items():
+        for _, data in hass.data[DOMAIN].items():
             if isinstance(data, dict) and "controller" in data:
                 # You would need to implement this part based on how your devices are stored
                 _LOGGER.info(
                     "Setting week program %s for device %s", program, device_id
                 )
 
+    async def async_set_preset_mode(hass: HomeAssistant, call: ServiceCall) -> None:
+        """Handle the service call."""
+        preset_mode = call.data.get("preset_mode")
+        device_id = call.data.get("device_id")
+
+        for _, data in hass.data[DOMAIN].items():
+            if isinstance(data, dict) and "controller" in data:
+                controller = data["controller"]
+                if device_id:
+                    # You would need to find the correct device and set its preset mode
+                    pass
+                else:
+                    # Set preset mode for all devices
+                    for device in controller.devices:
+                        _LOGGER.debug(
+                            "Setting preset mode %s for device %s",
+                            preset_mode,
+                            device.id,
+                        )
+                        await hass.async_add_executor_job(
+                            device.set_preset_mode, preset_mode
+                        )
+
+    async def async_set_night_mode(hass: HomeAssistant, call: ServiceCall) -> None:
+        """Handle the service call to set night mode."""
+        # Variable is declared but not used, commenting out to fix linter warning
+        # device_id = call.data.get("device_id")
+
+        # This is a simplified example - you would need to implement the logic
+        # to find the correct device object based on the device_id
+        for _, data in hass.data[DOMAIN].items():
+            if isinstance(data, dict) and "controller" in data:
+                # You would need to implement this part based on how your devices are stored
+                pass
+
     hass.services.async_register(DOMAIN, "refresh_devices", handle_refresh_devices)
     hass.services.async_register(DOMAIN, "set_week_program", handle_set_week_program)
+    hass.services.async_register(DOMAIN, "set_preset_mode", async_set_preset_mode)
+    hass.services.async_register(DOMAIN, "set_night_mode", async_set_night_mode)
 
     return True
 
