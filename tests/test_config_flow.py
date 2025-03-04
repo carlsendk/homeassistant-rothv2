@@ -3,61 +3,65 @@
 from unittest.mock import patch
 
 import pytest
-from homeassistant import config_entries
-from homeassistant.components.rothv2.const import DOMAIN
 from homeassistant.const import CONF_HOST
-from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
+from custom_components.rothv2.const import DOMAIN
 
-@pytest.mark.parametrize("platform", ["rothv2"])
-async def test_form(hass: HomeAssistant) -> None:
+# This fixture is provided by pytest_homeassistant_custom_component
+pytestmark = pytest.mark.asyncio
+
+
+@pytest.mark.asyncio
+async def test_form(hass, enable_custom_integrations):
     """Test we get the form."""
     result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
+        DOMAIN, context={"source": "user"}
     )
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {}
 
     with (
         patch(
-            "homeassistant.components.rothv2.config_flow.validate_input",
-            return_value={"title": "Roth Touchline (192.168.1.100)"},
+            "custom_components.rothv2.config_flow.PyTouchline.get_number_of_devices",
+            return_value="1",
         ),
         patch(
-            "homeassistant.components.rothv2.async_setup_entry",
+            "custom_components.rothv2.async_setup_entry",
             return_value=True,
-        ),
+        ) as mock_setup_entry,
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {
-                CONF_HOST: "192.168.1.100",
+                CONF_HOST: "1.1.1.1",
             },
         )
         await hass.async_block_till_done()
 
     assert result2["type"] == FlowResultType.CREATE_ENTRY
-    assert result2["title"] == "Roth Touchline (192.168.1.100)"
+    assert result2["title"] == "Roth Touchline (1.1.1.1)"
     assert result2["data"] == {
-        CONF_HOST: "192.168.1.100",
+        CONF_HOST: "1.1.1.1",
     }
+    assert len(mock_setup_entry.mock_calls) == 1
 
 
-async def test_form_cannot_connect(hass: HomeAssistant) -> None:
+@pytest.mark.asyncio
+async def test_form_cannot_connect(hass, enable_custom_integrations):
     """Test we handle cannot connect error."""
     result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
+        DOMAIN, context={"source": "user"}
     )
 
     with patch(
-        "homeassistant.components.rothv2.config_flow.validate_input",
-        side_effect=ValueError("Cannot connect"),
+        "custom_components.rothv2.config_flow.PyTouchline.get_number_of_devices",
+        side_effect=ConnectionError,
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {
-                CONF_HOST: "192.168.1.100",
+                CONF_HOST: "1.1.1.1",
             },
         )
 

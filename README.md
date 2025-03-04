@@ -110,22 +110,32 @@ data:
 ### Setup Development Environment
 
 1. Clone this repository
-2. Create a virtual environment: `python -m venv venv`
-3. Activate the virtual environment: `source venv/bin/activate` (Linux/macOS) or `venv\Scripts\activate` (Windows)
-4. Install requirements: `pip install -r requirements_dev.txt`
+2. Install [Poetry](https://python-poetry.org/docs/#installation) if you don't have it already
+3. Set up the environment with Poetry:
+   ```bash
+   poetry install
+   ```
 
 ### Testing
 
 Run tests with:
 ```bash
-pytest
+poetry run pytest
 ```
 
-### Linting
+### Linting and Type Checking
 
-Run linting with:
+This project uses Ruff for linting and mypy for type checking:
+
 ```bash
-pre-commit run --all-files
+# Run Ruff linter
+poetry run ruff check .
+
+# Auto-fix fixable issues
+poetry run ruff check --fix .
+
+# Run type checking
+poetry run mypy custom_components tests
 ```
 
 ### Submitting Changes
@@ -133,8 +143,18 @@ pre-commit run --all-files
 1. Fork this repository
 2. Create a new branch: `git checkout -b my-feature-branch`
 3. Make your changes
-4. Run tests and linting
+4. Run tests, linting, and type checking
 5. Create a pull request
+
+## Project Structure
+
+This project uses modern Python development tools:
+- [Poetry](https://python-poetry.org/) for dependency management
+- [Ruff](https://github.com/charliermarsh/ruff) for fast Python linting
+- [mypy](https://mypy.readthedocs.io/) for optional static typing
+- [pytest](https://docs.pytest.org/) for testing
+
+All configuration is consolidated in the `pyproject.toml` file.
 
 ## Dependencies
 

@@ -1,0 +1,94 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "homeassistant-rothv2"
+version = "0.1.0"
+description = "Roth Touchline V2 integration for Home Assistant"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{ include = "custom_components" }]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pytouchline_extended = "0.4.5"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.0.0"
+pytest-homeassistant-custom-component = ">=0.13.0"
+pre-commit = ">=3.1.0"
+mypy = ">=1.15.0"
+ruff = ">=0.1.0"
+
+[tool.pytest]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+exclude = "tests/pytest_pytouchline_extended.py"
+
+[[tool.mypy.overrides]]
+module = [
+    "pytest.*",
+    "homeassistant.*",
+    "pytest_homeassistant_custom_component.*",
+    "pytouchline_extended.*",
+    "voluptuous.*",
+]
+ignore_missing_imports = true
+
+[tool.pyright]
+include = ["custom_components", "tests"]
+exclude = ["**/__pycache__", "**/.pytest_cache"]
+ignore = ["tests"]
+reportMissingImports = false
+reportMissingTypeStubs = false
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
+
+[tool.ruff]
+# Ruff replaces Black, isort, flake8, and pylint
+line-length = 88
+target-version = "py39"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "N",   # pep8-naming
+    "D",   # pydocstyle
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "E501", # Line too long
+    "D100", # Missing docstring in public module
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D104", # Missing docstring in public package
+    "D107", # Missing docstring in __init__
+]
+exclude = [
+    ".git",
+    ".github",
+    "__pycache__",
+    ".pytest_cache",
+    "venv",
+    ".*",
+    "build",
+    "dist",
+]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.isort]
+known-first-party = ["custom_components.rothv2"]

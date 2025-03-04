@@ -1,0 +1,17 @@
+{
+    "include": [
+        "custom_components",
+        "tests"
+    ],
+    "exclude": [
+        "**/__pycache__",
+        "**/.pytest_cache"
+    ],
+    "ignore": [
+        "tests"
+    ],
+    "reportMissingImports": false,
+    "reportMissingTypeStubs": false,
+    "pythonVersion": "3.10",
+    "typeCheckingMode": "basic"
+}
