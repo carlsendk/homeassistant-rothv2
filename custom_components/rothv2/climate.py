@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any, ClassVar, NamedTuple
 
 import voluptuous as vol
@@ -21,6 +22,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
     DataUpdateCoordinator,
 )
 from pytouchline_extended import PyTouchline
@@ -64,18 +66,20 @@ async def async_setup_entry(
     coordinator = TouchlineDataUpdateCoordinator(
         hass, controller, DEFAULT_SCAN_INTERVAL
     )
-    await coordinator.async_config_entry_first_refresh()
 
     number_of_devices = int(controller.get_number_of_devices())
-    entities = []
+    entities: list[TouchlineClimate] = []
 
     for device_id in range(number_of_devices):
         touchline_device = PyTouchline(id=device_id, url=host)
+        coordinator.register_device(touchline_device)
         entities.append(
             TouchlineClimate(
                 coordinator, touchline_device, host, entry.entry_id, device_id
             )
         )
+
+    await coordinator.async_config_entry_first_refresh()
 
     async_add_entities(entities)
 
@@ -110,19 +114,23 @@ class TouchlineDataUpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=hass.helpers.event.async_track_time_interval(
-                self.async_request_refresh, DEFAULT_SCAN_INTERVAL
-            ),
+            update_interval=timedelta(seconds=update_interval),
         )
         self.controller = controller
+        self.devices: list[PyTouchline] = []
+
+    def register_device(self, device: PyTouchline) -> None:
+        """Register a device for coordinated updates."""
+        self.devices.append(device)
 
     async def _async_update_data(self):
-        """Fetch data from Touchline controller."""
-        # The update is handled by individual climate entities
+        """Fetch data from Touchline devices."""
+        for device in self.devices:
+            await self.hass.async_add_executor_job(device.update)
         return None
 
 
-class TouchlineClimate(ClimateEntity):
+class TouchlineClimate(CoordinatorEntity[TouchlineDataUpdateCoordinator], ClimateEntity):
     """Representation of a Touchline climate device."""
 
     _attr_hvac_mode = HVACMode.HEAT
@@ -135,20 +143,27 @@ class TouchlineClimate(ClimateEntity):
     _attr_name = None
     _attr_icon = ICON_THERMOSTAT
 
-    def __init__(self, coordinator, touchline_thermostat, host, entry_id, device_id):
+    def __init__(
+        self,
+        coordinator: TouchlineDataUpdateCoordinator,
+        touchline_thermostat: PyTouchline,
+        host: str,
+        entry_id: str | None,
+        device_id: int,
+    ) -> None:
         """Initialize the Touchline device."""
-        self.coordinator = coordinator
+        super().__init__(coordinator)
         self.unit = touchline_thermostat
         self._device_id = device_id
         self._host = host
         self._entry_id = entry_id
         self._attr_unique_id = UNIQUE_ID_BASE.format(f"{host}_{device_id}")
 
-        self._current_temperature = None
-        self._target_temperature = None
+        self._current_temperature: float | None = None
+        self._target_temperature: float | None = None
         self._hvac_mode = HVACMode.HEAT
-        self._hvac_action = None
-        self._preset_mode = None
+        self._hvac_action: HVACAction | None = None
+        self._preset_mode: str | None = None
         self._available = True
 
     @property
@@ -162,29 +177,26 @@ class TouchlineClimate(ClimateEntity):
             via_device=(DOMAIN, f"controller_{self._host}"),
         )
 
-    def update(self) -> None:
-        """Update thermostat attributes."""
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
         try:
-            self.unit.update()
             self._available = True
             self._attr_name = self.unit.get_name()
             self._current_temperature = self.unit.get_current_temperature()
             self._target_temperature = self.unit.get_target_temperature()
 
-            # Determine if heating is active
             if self.unit.is_heating():
                 self._hvac_action = HVACAction.HEATING
             else:
                 self._hvac_action = HVACAction.IDLE
 
-            # Get current preset mode
-            self._preset_mode = TOUCHLINE_HA_PRESETS.get((
-                self.unit.get_operation_mode(),
-                self.unit.get_week_program(),
-            ))
+            self._preset_mode = TOUCHLINE_HA_PRESETS.get(
+                (self.unit.get_operation_mode(), self.unit.get_week_program())
+            )
         except Exception as ex:
             _LOGGER.error("Error updating Touchline device %s: %s", self._device_id, ex)
             self._available = False
+        super()._handle_coordinator_update()
 
     @property
     def available(self) -> bool:
@@ -221,30 +233,33 @@ class TouchlineClimate(ClimateEntity):
         """Return available preset modes."""
         return list(PRESET_MODES)
 
-    def set_preset_mode(self, preset_mode):
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new target preset mode."""
         preset_mode_settings = PRESET_MODES[preset_mode]
-        self.unit.set_operation_mode(preset_mode_settings.mode)
-        self.unit.set_week_program(preset_mode_settings.program)
+        await self.hass.async_add_executor_job(
+            self.unit.set_operation_mode, preset_mode_settings.mode
+        )
+        await self.hass.async_add_executor_job(
+            self.unit.set_week_program, preset_mode_settings.program
+        )
         self._preset_mode = preset_mode
-        self.schedule_update_ha_state()
+        await self.coordinator.async_request_refresh()
 
-    def set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set new target hvac mode."""
         if hvac_mode == HVACMode.HEAT:
-            # Enable heating
-            self.unit.enable_heating()
+            await self.hass.async_add_executor_job(self.unit.enable_heating)
             self._hvac_mode = HVACMode.HEAT
         elif hvac_mode == HVACMode.OFF:
-            # Disable heating
-            self.unit.disable_heating()
+            await self.hass.async_add_executor_job(self.unit.disable_heating)
             self._hvac_mode = HVACMode.OFF
+        await self.coordinator.async_request_refresh()
 
-        self.schedule_update_ha_state()
-
-    def set_temperature(self, **kwargs: Any) -> None:
+    async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set new target temperature."""
         if kwargs.get(ATTR_TEMPERATURE) is not None:
             self._target_temperature = kwargs.get(ATTR_TEMPERATURE)
-            self.unit.set_target_temperature(self._target_temperature)
-            self.schedule_update_ha_state()
+            await self.hass.async_add_executor_job(
+                self.unit.set_target_temperature, self._target_temperature
+            )
+            await self.coordinator.async_request_refresh()
