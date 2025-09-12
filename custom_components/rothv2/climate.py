@@ -6,9 +6,7 @@ import logging
 from datetime import timedelta
 from typing import Any, ClassVar, NamedTuple
 
-import voluptuous as vol
 from homeassistant.components.climate import (
-    PLATFORM_SCHEMA,
     ClimateEntity,
     ClimateEntityFeature,
     HVACAction,
@@ -17,10 +15,8 @@ from homeassistant.components.climate import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, CONF_HOST, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -53,9 +49,6 @@ TOUCHLINE_HA_PRESETS = {
     for preset, settings in PRESET_MODES.items()
 }
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({vol.Required(CONF_HOST): cv.string})
-
-
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
@@ -84,25 +77,6 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-def setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
-) -> None:
-    """Set up the Touchline devices through configuration.yaml."""
-    host = config[CONF_HOST]
-    py_touchline = PyTouchline(url=host)
-    number_of_devices = int(py_touchline.get_number_of_devices())
-    devices = [
-        TouchlineClimate(
-            None, PyTouchline(id=device_id, url=host), host, None, device_id
-        )
-        for device_id in range(number_of_devices)
-    ]
-    add_entities(devices, True)
-
-
 class TouchlineDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage data updates from the Touchline controller."""
 
@@ -125,8 +99,11 @@ class TouchlineDataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch data from Touchline devices."""
-        for device in self.devices:
-            await self.hass.async_add_executor_job(device.update)
+        for idx, device in enumerate(self.devices):
+            try:
+                await self.hass.async_add_executor_job(device.update)
+            except Exception as err:
+                _LOGGER.error("Error updating Touchline device %s: %s", idx, err)
         return None
 
 
