@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any, ClassVar, NamedTuple
 
 import voluptuous as vol
@@ -110,9 +111,7 @@ class TouchlineDataUpdateCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=hass.helpers.event.async_track_time_interval(
-                self.async_request_refresh, DEFAULT_SCAN_INTERVAL
-            ),
+            update_interval=timedelta(seconds=update_interval),
         )
         self.controller = controller
 
