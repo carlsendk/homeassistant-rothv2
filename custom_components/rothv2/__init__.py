@@ -113,10 +113,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if isinstance(data, dict) and "controller" in data:
                 controller = data["controller"]
                 if device_id:
-                    # You would need to find the correct device and set its preset mode
-                    pass
+                    for device in controller.devices:
+                        if str(device.id) == str(device_id):
+                            _LOGGER.debug(
+                                "Setting preset mode %s for device %s",
+                                preset_mode,
+                                device.id,
+                            )
+                            await hass.async_add_executor_job(
+                                device.set_preset_mode, preset_mode
+                            )
+                            break
                 else:
-                    # Set preset mode for all devices
                     for device in controller.devices:
                         _LOGGER.debug(
                             "Setting preset mode %s for device %s",
@@ -129,15 +137,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def async_set_night_mode(hass: HomeAssistant, call: ServiceCall) -> None:
         """Handle the service call to set night mode."""
-        # Variable is declared but not used, commenting out to fix linter warning
-        # device_id = call.data.get("device_id")
+        device_id = call.data.get("device_id")
 
-        # This is a simplified example - you would need to implement the logic
-        # to find the correct device object based on the device_id
         for _, data in hass.data[DOMAIN].items():
             if isinstance(data, dict) and "controller" in data:
-                # You would need to implement this part based on how your devices are stored
-                pass
+                controller = data["controller"]
+                if device_id:
+                    for device in controller.devices:
+                        if str(device.id) == str(device_id):
+                            await hass.async_add_executor_job(
+                                device.set_operation_mode, 1
+                            )
+                            break
+                else:
+                    for device in controller.devices:
+                        await hass.async_add_executor_job(
+                            device.set_operation_mode, 1
+                        )
 
     hass.services.async_register(DOMAIN, "refresh_devices", handle_refresh_devices)
     hass.services.async_register(DOMAIN, "set_week_program", handle_set_week_program)
