@@ -20,8 +20,9 @@ pytest-homeassistant-custom-component = ">=0.13.0"
 pre-commit = ">=3.1.0"
 mypy = ">=1.15.0"
 ruff = ">=0.1.0"
+homeassistant = ">=2025.1.0"
 
-[tool.pytest]
+[tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
